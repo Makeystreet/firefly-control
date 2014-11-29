@@ -38,14 +38,15 @@ float ypr[3]; // [yaw, pitch, roll] yaw/pitch/roll container and gravity vector
 
 static int motorBottomOffset = 80;
 int incomingByte = 0;	// for incoming serial data
-int Kpid[]={30,0,150};
+int Kpid[]={30,0,10};
 float Kp = 0;
 float Ki = 0;
 float Kd = 0;
 float Kp_dis = 0;
 float Ki_dis = 0;
 float Kd_dis = 0;
-float targetAngle = -3;
+float targetAngle = -1.5;
+float setPoint = targetAngle;
 float currAngle = 0;
 float pTerm = 0;
 float iTerm = 0;
@@ -73,7 +74,7 @@ void dis_int_l()
     dis_l-=1;
   else
     dis_l+=1;
-  delay(3);
+//  delay(1); 
 }
 
 void dis_int_r()
@@ -83,7 +84,7 @@ void dis_int_r()
     dis_r-=1;
   else
     dis_r+=1;
-  delay(3);
+//  delay(1);
 }
 
 
@@ -169,6 +170,7 @@ void loop() {
         Kd=Kpid[2];
         currAngle = (ypr[2] * 180/M_PI);
         torque=updateSpeed();
+//        updateSetPoint();
         Drive_Motor(torque);
     }
     statusUpdate();
@@ -183,12 +185,11 @@ void loop() {
 }
 
 float updateSpeed() {
-  float error = targetAngle - currAngle;
-  float error_dis = - (dis_l + dis_r)/2;
+  float error = setPoint - currAngle;
   pTerm = Kp * error;
   integrated_error += error;
   iTerm = Ki * constrain(integrated_error, -50, 50);
-  dTerm = Kd * (error - last_error) 
+  dTerm = Kd * (error - last_error);
   last_error = error;
   int speed = -constrain(K*(pTerm + iTerm + dTerm), -255+motorBottomOffset, 255-motorBottomOffset);
   if (speed > 0)
@@ -197,6 +198,17 @@ float updateSpeed() {
     speed-=motorBottomOffset;
   return speed;
   
+}
+
+void updateSetPoint()
+{
+  float error_dis = (dis_l + dis_r)/2;
+  if (error_dis>5)
+    setPoint=targetAngle+0.5;
+  else if (error_dis<-5)
+    setPoint=targetAngle-0.5;
+  else
+    setPoint=targetAngle;
 }
 
 float Drive_Motor(float torque)  {
@@ -253,18 +265,22 @@ void updatePIDconstant()
 }
 void statusUpdate()
 {
-  Serial.print("roll\t");
+//  Serial.print("roll\t");
+
 //  Serial.print(ypr[0] * 180/M_PI);
 //  Serial.print("\t");
 //  Serial.print(ypr[1] * 180/M_PI);
 //  Serial.print("\t");
-  Serial.print(ypr[2] * 180/M_PI);
-  Serial.print("\tOutput: ");
-  Serial.print(torque);
-  Serial.print("\t");
-  Serial.print(dis_l);
-  Serial.print("\t");
-  Serial.println(dis_r);
+
+//  Serial.print(ypr[2] * 180/M_PI);
+//  Serial.print("\tOutput: ");
+//  Serial.print(torque);
+//  Serial.print("\t");
+//  Serial.print(dis_l);
+//  Serial.print("\t");
+//  Serial.println(dis_r);
+  Serial.println(setPoint);
+
   
 //  Serial.print("Kpid\t");
 //  Serial.print(Kp);
